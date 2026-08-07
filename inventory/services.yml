@@ -8,75 +8,176 @@ services:
     owner_plane: public-experience
     target_platform: vercel-cloudflare
     authority: public-interface
+    action: KEEP
+
   - name: twenty
-    status: target
+    status: target-evaluation
     evidence: crm-architecture-decision
     current_platform: not-deployed-confirmed
     owner_plane: business-production
     target_platform: atlas
-    authority: crm-if-promoted
+    authority: preferred-self-hosted-crm-if-promoted
+    action: DEPLOY-STAGING-FIRST
+
   - name: hubspot-free
     status: observed
-    evidence: crm-architecture-conversation
-    current_platform: hubspot
+    evidence: user-confirmed-testing-strategy
+    current_platform: hubspot-saas
     owner_plane: saas
-    target_platform: hubspot
-    authority: supported-crm-alternative
+    target_platform: hubspot-saas
+    authority: supported-zero-infrastructure-crm-alternative
+    action: KEEP
+
   - name: n8n
-    status: observed
-    evidence: architecture-conversation-location-unverified
-    current_platform: unverified
+    status: observed-duplicates
+    evidence: user-confirmed-multiple-environments
+    current_platform: multiple-unverified
     owner_plane: business-production
-    target_platform: atlas
+    target_platform: atlas-prod-and-forge-staging
     authority: orchestration
-    note: duplicate instances require inventory before consolidation
+    action: CONSOLIDATE
+    note: Keep exactly one production instance and one staging instance unless a documented exception exists.
+
   - name: litellm
-    status: observed
-    evidence: architecture-conversation-location-unverified
+    status: observed-duplicates
+    evidence: user-confirmed-multiple-instances
+    current_platform: multiple-unverified
+    owner_plane: ai-routing
+    target_platform: canonical-production-gateway-plus-staging
+    authority: model-routing
+    action: CONSOLIDATE
+    note: Exact placement should preserve low-latency access to Citadel while keeping customer production dependencies cloud/VPS based.
+
+  - name: postgres
+    status: observed-duplicates
+    evidence: user-confirmed-multiple-databases
+    current_platform: multiple-unverified
+    owner_plane: data
+    target_platform: workload-local
+    authority: relational-data
+    action: INVENTORY-BEFORE-CONSOLIDATION
+    note: Do not centralize production databases over the residential WAN. Each application's database authority must be documented.
+
+  - name: redis
+    status: observed-unverified
+    evidence: existing-zentari-stack-context
     current_platform: unverified
+    owner_plane: data
+    target_platform: workload-local
+    authority: cache-queue
+    action: INVENTORY
+
+  - name: hermes-primary
+    status: observed
+    evidence: user-confirmed-citadel-agent
+    current_platform: citadel
     owner_plane: ai
     target_platform: citadel
-    authority: model-routing
-    note: duplicate instances require inventory before consolidation
+    authority: zentari-primary-agent
+    action: KEEP
+
+  - name: hermes-secondary
+    status: observed
+    evidence: user-confirmed-oracle-agent
+    current_platform: watchtower
+    owner_plane: operations-ai
+    target_platform: watchtower
+    authority: offsite-secondary-agent
+    action: KEEP
+
   - name: appflowy
-    status: target
+    status: target-evaluation
     evidence: architecture-conversation
-    current_platform: unverified
-    owner_plane: business-production
+    current_platform: not-confirmed-deployed
+    owner_plane: knowledge
     target_platform: atlas
     authority: internal-knowledge-if-adopted
+    action: DEPLOY-AFTER-CRM-VALIDATION
+
   - name: mautic
-    status: optional
+    status: optional-evaluation
     evidence: architecture-conversation
-    current_platform: unverified
-    owner_plane: business-production
-    target_platform: atlas
+    current_platform: not-confirmed-deployed
+    owner_plane: marketing
+    target_platform: atlas-if-retained
     authority: marketing-automation
+    action: EVALUATE
+    note: Treat as a learning/reference platform first. It requires MySQL/MariaDB rather than PostgreSQL.
+
   - name: baserow
     status: optional
     evidence: architecture-conversation
-    current_platform: unverified
-    owner_plane: business-production
-    target_platform: atlas
+    current_platform: not-confirmed-deployed
+    owner_plane: operations-data
+    target_platform: atlas-if-required
     authority: operational-data
+    action: HOLD
+    note: Deploy only when a concrete operational-data use case is not better served by CRM, AppFlowy or a custom application database.
+
   - name: supabase
-    status: optional
+    status: optional-managed
     evidence: architecture-conversation
     current_platform: managed-saas-if-selected
     owner_plane: managed-cloud
-    target_platform: supabase
+    target_platform: supabase-pro-when-justified
     authority: custom-application-backend
+    action: USE-PER-APP
+    note: Prefer for custom applications needing managed Postgres, Auth, RLS, Storage, Realtime or generated APIs. Do not use as a generic replacement for packaged application databases.
+
   - name: backblaze-b2
     status: observed
     evidence: user-confirmed-offsite-backup
     current_platform: backblaze
     owner_plane: offsite-backup
     target_platform: backblaze
-    authority: encrypted-recovery-copy
-  - name: observability-stack
-    status: target
-    evidence: architecture-conversation
+    authority: encrypted-offsite-recovery-copy
+    action: KEEP
+
+  - name: proxmox-observability-vm
+    status: observed
+    evidence: user-provided-proxmox-screenshot-2026-08-07
+    current_platform: forge-vm105
+    owner_plane: operations
+    resources:
+      vcpu: 4
+      memory_gb: 8
+      bootdisk_gb: 200
+    authority: unverified
+    action: INVENTORY
+    note: Do not duplicate or migrate observability until the services currently running in VM 105 are identified.
+
+  - name: grafana-prometheus-loki
+    status: target-or-existing-unverified
+    evidence: architecture-conversation-and-existing-observability-vm
+    current_platform: forge-vm105-unverified
+    owner_plane: operations
+    target_platform: watchtower-for-external-visibility-with-vault-for-local-long-retention-as-needed
+    authority: telemetry
+    action: VERIFY-BEFORE-DEPLOY
+
+  - name: uptime-kuma
+    status: target-or-existing-unverified
+    evidence: existing-zentari-context
     current_platform: unverified
     owner_plane: operations
-    target_platform: watchtower-and-vault
-    authority: telemetry-and-alerting
+    target_platform: watchtower
+    authority: external-availability-checks
+    action: VERIFY-BEFORE-DEPLOY
+
+  - name: infisical
+    status: target
+    evidence: prior-zentari-architecture-decision
+    current_platform: unverified
+    owner_plane: security
+    target_platform: business-platform-with-break-glass-copy-outside-same-failure-domain
+    authority: application-secrets
+    action: VERIFY-AND-HARDEN
+
+  - name: tailscale
+    status: target-or-partial
+    evidence: architecture-conversation
+    current_platform: unverified
+    owner_plane: management-network
+    target_platform: all-managed-hosts
+    authority: private-management-plane
+    action: STANDARDIZE
