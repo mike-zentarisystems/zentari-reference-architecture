@@ -69,6 +69,16 @@ services:
     authority: ai-local-gateway-unverified
     action: VERIFY
 
+  - name: omniroute-buzz
+    status: historical-intent
+    evidence: buzz-all-in-one/README.md
+    current_platform: forge-vm104-likely-but-unverified
+    owner_plane: ai-development
+    target_platform: evaluation-only
+    authority: none-until-live-validated
+    action: INVENTORY-VM104
+    note: Historical Buzz design used OmniRoute as the shared OpenAI-compatible gateway for Buzz, Goose and OpenCode. Do not promote it to canonical routing while production LiteLLM is already authoritative.
+
   - name: postgres-production
     status: observed
     evidence: zentari-ops/docker-compose.yml
@@ -122,12 +132,15 @@ services:
 
   - name: hermes-secondary
     status: observed
-    evidence: user-confirmed-oracle-agent
+    evidence: user-confirmed-oracle-agent-plus-oracle-hermes-repo
     current_platform: watchtower
     owner_plane: operations-ai
     target_platform: watchtower
     authority: offsite-secondary-agent
     action: KEEP
+    implementation_intent: native-systemd-on-oracle-linux
+    access_intent: tailscale-only
+    note: Repo documents optional WebUI, API bridge, Telegram and tiny Ollama, but live state remains unverified.
 
   - name: ollama-citadel
     status: observed-stale
@@ -164,6 +177,17 @@ services:
     target_platform: evaluate-retirement
     authority: unverified
     action: VERIFY-USAGE
+
+  - name: buzz-development-platform
+    status: historical-intent
+    evidence: buzz-all-in-one/README.md-and-forge-vm104-name
+    current_platform: forge-vm104-likely-but-unverified
+    owner_plane: ai-development
+    target_platform: forge-lab-or-retire
+    authority: none
+    action: INVENTORY-VM104
+    components_intended: [coolify, buzz, omniroute, goose, opencode, status-dashboard]
+    note: Keep this isolated from Citadel and customer production. Preserve only if it remains a useful development sandbox.
 
   - name: openwebui-production
     status: observed
@@ -212,12 +236,23 @@ services:
     authority: unverified
     action: VERIFY
 
+  - name: observability-core-vm105
+    status: historical-intent
+    evidence: zentari-logging/README.md-plus-docker-compose.yml-plus-forge-vm105-name
+    current_platform: forge-vm105-likely-but-live-unverified
+    owner_plane: operations
+    target_platform: central-observability-core-if-live-and-healthy
+    authority: pending-live-validation
+    action: INVENTORY-VM105-BEFORE-NEW-DEPLOYMENT
+    components_intended: [grafana, prometheus, loki, alloy, alertmanager, uptime-kuma, blackbox-exporter, opentelemetry-collector, node-exporter, cadvisor]
+    note: Repo also proposes separate Langfuse, PostHog, Coolify and Gitea VMs plus a Proxmox Backup Server plane. Those are design intent, not confirmed deployments.
+
   - name: grafana-production
     status: observed
     evidence: zentari-ops/docker-compose.monitoring.yml
     current_platform: atlas
     owner_plane: operations
-    target_platform: watchtower-or-vault-after-migration
+    target_platform: migrate-to-observability-core-after-validation
     authority: current-production-dashboarding
     action: KEEP-UNTIL-MIGRATED
 
@@ -227,9 +262,72 @@ services:
     current_platform: atlas
     owner_plane: operations
     retention: 30d
-    target_platform: watchtower-or-vault-after-migration
+    target_platform: migrate-to-observability-core-after-validation
     authority: current-production-metrics
     action: KEEP-UNTIL-MIGRATED
+
+  - name: loki-central
+    status: historical-intent
+    evidence: zentari-logging/docker-compose.yml
+    current_platform: forge-vm105-likely-but-unverified
+    owner_plane: operations
+    target_platform: observability-core
+    authority: centralized-logs-if-live
+    action: VERIFY-LIVE
+
+  - name: alloy-central
+    status: historical-intent
+    evidence: zentari-logging/docker-compose.yml
+    current_platform: forge-vm105-likely-but-unverified
+    owner_plane: operations
+    target_platform: observability-core
+    authority: log-and-telemetry-collector-if-live
+    action: VERIFY-LIVE
+
+  - name: otel-collector-central
+    status: historical-intent
+    evidence: zentari-logging/docker-compose.yml
+    current_platform: forge-vm105-likely-but-unverified
+    owner_plane: operations
+    target_platform: observability-core
+    authority: otlp-ingestion-if-live
+    action: VERIFY-LIVE
+
+  - name: langfuse
+    status: optional-historical-intent
+    evidence: zentari-logging/README.md
+    current_platform: separate-vm-proposed-not-live-confirmed
+    owner_plane: ai-observability
+    target_platform: dedicated-vm-or-managed-if-adopted
+    authority: ai-traces
+    action: VERIFY-WHETHER-DEPLOYED
+
+  - name: posthog
+    status: optional-historical-intent
+    evidence: zentari-logging/README.md
+    current_platform: separate-vm-proposed-not-live-confirmed
+    owner_plane: product-analytics
+    target_platform: dedicated-vm-or-managed-if-adopted
+    authority: product-events-and-funnels
+    action: VERIFY-WHETHER-DEPLOYED
+
+  - name: coolify
+    status: historical-intent
+    evidence: zentari-logging/README.md-and-buzz-all-in-one/README.md
+    current_platform: forge-vm104-or-separate-control-vm-possible-unverified
+    owner_plane: deployment-control
+    target_platform: staging-development-only-until-reviewed
+    authority: none-for-production-until-designated
+    action: INVENTORY
+
+  - name: gitea-recovery
+    status: optional-historical-intent
+    evidence: zentari-logging/README.md
+    current_platform: separate-vm-proposed-not-live-confirmed
+    owner_plane: source-control-recovery
+    target_platform: vault-or-dedicated-infrastructure-vm-if-justified
+    authority: emergency-git-mirror-only
+    action: VERIFY-WHETHER-DEPLOYED
 
   - name: production-exporters
     status: observed
@@ -336,17 +434,14 @@ services:
     current_policy: 7-daily-4-weekly-3-monthly
     integrity_check: weekly
 
-  - name: proxmox-observability-vm
-    status: observed
-    evidence: user-provided-proxmox-screenshot-2026-08-07
-    current_platform: forge-vm105
-    owner_plane: operations
-    resources:
-      vcpu: 4
-      memory_gb: 8
-      bootdisk_gb: 200
-    authority: unverified
-    action: INVENTORY
+  - name: proxmox-backup-server
+    status: optional-historical-intent
+    evidence: zentari-logging/README.md
+    current_platform: separate-storage-proposed-not-live-confirmed
+    owner_plane: backup-recovery
+    target_platform: vault-after-proxmox-conversion-if-storage-layout-supports-it
+    authority: local-vm-backup-if-adopted
+    action: EVALUATE-AFTER-R410-HARDWARE-VALIDATION
 
   - name: infisical
     status: target
@@ -359,8 +454,8 @@ services:
 
   - name: tailscale
     status: observed-partial
-    evidence: zentari-ops-readme-and-compose
-    current_platform: atlas-confirmed-other-hosts-unverified
+    evidence: zentari-ops-readme-and-compose-plus-oracle-hermes-repo-intent
+    current_platform: atlas-confirmed-oracle-intended-other-hosts-unverified
     owner_plane: management-network
     target_platform: all-managed-hosts
     authority: private-management-plane
