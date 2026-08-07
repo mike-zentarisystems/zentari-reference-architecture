@@ -1,0 +1,8 @@
+flowchart LR
+  app["Application quiesce / logical dump"] --> local["Encrypted Vault repository"]
+  local --> verify["Integrity check"]
+  verify --> b2["Encrypted Backblaze B2 repository"]
+  watch["Watchtower"] -. "freshness + anomaly checks" .-> local
+  watch -. "offsite check" .-> b2
+  b2 --> restore["Isolated restore test"]
+  restore --> evidence["Recovery evidence + next due date"]

@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.tfstate
+*.tfstate.*
+backups/*
+!backups/README.md
+artifacts/
+validation-output/

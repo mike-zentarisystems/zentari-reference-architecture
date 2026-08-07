@@ -1,0 +1,11 @@
+flowchart TB
+  customer["Users / Customers"] --> edge["Cloudflare + Vercel\nPublic Experience"]
+  edge --> prod["Atlas / Customer Cloud\nBusiness Production"]
+  prod -. "no customer workload or payload path" .- citadel["Citadel\nZentari-only AI"]
+  forge["Forge Proxmox\nStaging"] -->|"tested promotion"| prod
+  prod -->|"local recovery copy"| vault["Vault Proxmox\nInfrastructure + Backups"]
+  vault -->|"encrypted offsite"| b2["Backblaze B2"]
+  watch["Oracle Watchtower\nExternal Ops / DR"] -.-> edge
+  watch -.-> prod
+  watch -.-> citadel
+  watch -.-> b2

@@ -1,0 +1,7 @@
+flowchart TB
+  subgraph allowed["Approved customer production"]
+    edge["Cloudflare / Vercel"] --> cloud["Customer cloud / isolated VPS"]
+    cloud --> data["Customer-controlled data services"]
+  end
+  cloud -->|"only under explicit data-flow approval"| ai["Private AI endpoint"]
+  citadel["Zentari Citadel"] -. "not a customer host" .- cloud

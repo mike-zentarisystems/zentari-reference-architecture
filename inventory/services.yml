@@ -1,0 +1,82 @@
+schema_version: 1
+as_of: 2026-08-07
+services:
+  - name: public-web-apps
+    status: observed
+    evidence: architecture-conversation
+    current_platform: vercel-cloudflare
+    owner_plane: public-experience
+    target_platform: vercel-cloudflare
+    authority: public-interface
+  - name: twenty
+    status: target
+    evidence: crm-architecture-decision
+    current_platform: not-deployed-confirmed
+    owner_plane: business-production
+    target_platform: atlas
+    authority: crm-if-promoted
+  - name: hubspot-free
+    status: observed
+    evidence: crm-architecture-conversation
+    current_platform: hubspot
+    owner_plane: saas
+    target_platform: hubspot
+    authority: supported-crm-alternative
+  - name: n8n
+    status: observed
+    evidence: architecture-conversation-location-unverified
+    current_platform: unverified
+    owner_plane: business-production
+    target_platform: atlas
+    authority: orchestration
+    note: duplicate instances require inventory before consolidation
+  - name: litellm
+    status: observed
+    evidence: architecture-conversation-location-unverified
+    current_platform: unverified
+    owner_plane: ai
+    target_platform: citadel
+    authority: model-routing
+    note: duplicate instances require inventory before consolidation
+  - name: appflowy
+    status: target
+    evidence: architecture-conversation
+    current_platform: unverified
+    owner_plane: business-production
+    target_platform: atlas
+    authority: internal-knowledge-if-adopted
+  - name: mautic
+    status: optional
+    evidence: architecture-conversation
+    current_platform: unverified
+    owner_plane: business-production
+    target_platform: atlas
+    authority: marketing-automation
+  - name: baserow
+    status: optional
+    evidence: architecture-conversation
+    current_platform: unverified
+    owner_plane: business-production
+    target_platform: atlas
+    authority: operational-data
+  - name: supabase
+    status: optional
+    evidence: architecture-conversation
+    current_platform: managed-saas-if-selected
+    owner_plane: managed-cloud
+    target_platform: supabase
+    authority: custom-application-backend
+  - name: backblaze-b2
+    status: observed
+    evidence: user-confirmed-offsite-backup
+    current_platform: backblaze
+    owner_plane: offsite-backup
+    target_platform: backblaze
+    authority: encrypted-recovery-copy
+  - name: observability-stack
+    status: target
+    evidence: architecture-conversation
+    current_platform: unverified
+    owner_plane: operations
+    target_platform: watchtower-and-vault
+    authority: telemetry-and-alerting
