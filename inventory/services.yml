@@ -28,48 +28,92 @@ services:
     authority: supported-zero-infrastructure-crm-alternative
     action: KEEP
 
-  - name: n8n
-    status: observed-duplicates
-    evidence: user-confirmed-multiple-environments
-    current_platform: multiple-unverified
+  - name: n8n-production
+    status: observed
+    evidence: zentari-ops/docker-compose.yml
+    current_platform: atlas
     owner_plane: business-production
-    target_platform: atlas-prod-and-forge-staging
-    authority: orchestration
-    action: CONSOLIDATE
-    note: Keep exactly one production instance and one staging instance unless a documented exception exists.
+    target_platform: atlas
+    authority: production-orchestration
+    action: KEEP
+    implementation: queue-mode-main-plus-worker
+    dependencies: [postgres-production, redis-production]
 
-  - name: litellm
-    status: observed-duplicates
-    evidence: user-confirmed-multiple-instances
-    current_platform: multiple-unverified
+  - name: n8n-citadel
+    status: observed-stale
+    evidence: citidel/current_state.md-captured-2026-07-03
+    current_platform: citadel
+    owner_plane: ai
+    target_platform: undecided-after-live-dependency-check
+    authority: unknown
+    action: VERIFY-THEN-RETIRE-OR-EXCEPTION
+    note: Do not remove until live workflows and dependencies are identified.
+
+  - name: litellm-production
+    status: observed
+    evidence: zentari-ops/docker-compose.ai.yml
+    current_platform: atlas
     owner_plane: ai-routing
-    target_platform: canonical-production-gateway-plus-staging
-    authority: model-routing
-    action: CONSOLIDATE
-    note: Exact placement should preserve low-latency access to Citadel while keeping customer production dependencies cloud/VPS based.
+    target_platform: atlas
+    authority: production-model-routing
+    action: KEEP
+    dependencies: [postgres-production, redis-production]
+    access: tailscale-traefik-internal
 
-  - name: postgres
-    status: observed-duplicates
-    evidence: user-confirmed-multiple-databases
-    current_platform: multiple-unverified
-    owner_plane: data
-    target_platform: workload-local
-    authority: relational-data
-    action: INVENTORY-BEFORE-CONSOLIDATION
-    note: Do not centralize production databases over the residential WAN. Each application's database authority must be documented.
+  - name: litellm-citadel
+    status: observed-stale
+    evidence: citidel/current_state.md-captured-2026-07-03
+    current_platform: citadel
+    owner_plane: ai-local-routing
+    target_platform: citadel-only-if-distinct-role-documented
+    authority: ai-local-gateway-unverified
+    action: VERIFY
 
-  - name: redis
-    status: observed-unverified
-    evidence: existing-zentari-stack-context
-    current_platform: unverified
+  - name: postgres-production
+    status: observed
+    evidence: zentari-ops/docker-compose.yml
+    current_platform: atlas
+    version: 15
     owner_plane: data
-    target_platform: workload-local
-    authority: cache-queue
-    action: INVENTORY
+    target_platform: atlas
+    authority: production-relational-data
+    action: KEEP
+    consumers: [n8n-production, litellm-production]
+
+  - name: postgres-citadel
+    status: observed-stale
+    evidence: citidel/current_state.md-captured-2026-07-03
+    current_platform: citadel
+    version: 16-pgvector
+    owner_plane: ai-data
+    target_platform: citadel-only-for-ai-local-state
+    authority: unverified
+    action: MAP-CONSUMERS
+
+  - name: redis-production
+    status: observed
+    evidence: zentari-ops/docker-compose.yml
+    current_platform: atlas
+    version: 7
+    owner_plane: data
+    target_platform: atlas
+    authority: production-cache-queue
+    action: KEEP
+    consumers: [n8n-production, litellm-production]
+
+  - name: valkey-citadel
+    status: observed-stale
+    evidence: citidel/current_state.md-captured-2026-07-03
+    current_platform: citadel
+    version: 8
+    owner_plane: ai-data
+    target_platform: citadel-if-required
+    authority: unverified
+    action: MAP-CONSUMERS
 
   - name: hermes-primary
     status: observed
-    evidence: user-confirmed-citadel-agent
+    evidence: citidel/current_state.md-and-user-confirmation
     current_platform: citadel
     owner_plane: ai
     target_platform: citadel
@@ -84,6 +128,165 @@ services:
     target_platform: watchtower
     authority: offsite-secondary-agent
     action: KEEP
+
+  - name: ollama-citadel
+    status: observed-stale
+    evidence: citidel/current_state.md-captured-2026-07-03
+    current_platform: citadel
+    owner_plane: ai-inference
+    target_platform: citadel
+    authority: local-model-runtime
+    action: KEEP-VERIFY-LIVE
+
+  - name: qdrant-citadel
+    status: observed-stale
+    evidence: citidel/current_state.md-captured-2026-07-03
+    current_platform: citadel
+    owner_plane: ai-memory
+    target_platform: citadel
+    authority: vector-store
+    action: KEEP-VERIFY-LIVE
+
+  - name: minio-citadel
+    status: observed-stale
+    evidence: citidel/current_state.md-captured-2026-07-03
+    current_platform: citadel
+    owner_plane: ai-storage
+    target_platform: undecided
+    authority: unverified
+    action: MAP-CONSUMERS
+
+  - name: anythingllm-citadel
+    status: observed-stale
+    evidence: citidel/current_state.md-captured-2026-07-03
+    current_platform: citadel
+    owner_plane: ai-workspace
+    target_platform: evaluate-retirement
+    authority: unverified
+    action: VERIFY-USAGE
+
+  - name: openwebui-production
+    status: observed
+    evidence: zentari-ops/docker-compose.ai.yml
+    current_platform: atlas
+    owner_plane: ai-interface
+    target_platform: atlas-or-retire-if-unused
+    authority: internal-ai-chat
+    action: VERIFY-USAGE
+    access: tailscale-only
+
+  - name: traefik-production
+    status: observed
+    evidence: zentari-ops/docker-compose.yml
+    current_platform: atlas
+    version: 3.6
+    owner_plane: edge
+    target_platform: atlas
+    authority: production-reverse-proxy
+    action: KEEP
+
+  - name: traefik-citadel
+    status: observed-stale
+    evidence: citidel/current_state.md-captured-2026-07-03
+    current_platform: citadel
+    owner_plane: ai-edge
+    target_platform: private-ai-edge-if-required
+    authority: unverified
+    action: VERIFY
+
+  - name: uptime-kuma-production
+    status: observed
+    evidence: zentari-ops/docker-compose.internal.yml
+    current_platform: atlas
+    owner_plane: operations
+    target_platform: migrate-or-federate-to-watchtower
+    authority: production-and-backup-heartbeat-monitoring
+    action: KEEP-UNTIL-WATCHTOWER-VALIDATED
+
+  - name: uptime-kuma-citadel
+    status: observed-stale
+    evidence: citidel/current_state.md-captured-2026-07-03
+    current_platform: citadel
+    owner_plane: operations
+    target_platform: retire-after-watchtower-migration-if-redundant
+    authority: unverified
+    action: VERIFY
+
+  - name: grafana-production
+    status: observed
+    evidence: zentari-ops/docker-compose.monitoring.yml
+    current_platform: atlas
+    owner_plane: operations
+    target_platform: watchtower-or-vault-after-migration
+    authority: current-production-dashboarding
+    action: KEEP-UNTIL-MIGRATED
+
+  - name: prometheus-production
+    status: observed
+    evidence: zentari-ops/docker-compose.monitoring.yml
+    current_platform: atlas
+    owner_plane: operations
+    retention: 30d
+    target_platform: watchtower-or-vault-after-migration
+    authority: current-production-metrics
+    action: KEEP-UNTIL-MIGRATED
+
+  - name: production-exporters
+    status: observed
+    evidence: zentari-ops/docker-compose.monitoring.yml
+    current_platform: atlas
+    owner_plane: operations
+    components: [node-exporter, cadvisor, postgres-exporter]
+    target_platform: atlas-agents-scraped-by-central-monitoring
+    authority: host-and-container-telemetry
+    action: KEEP
+
+  - name: vaultwarden-production
+    status: observed
+    evidence: zentari-ops/docker-compose.internal.yml
+    current_platform: atlas
+    owner_plane: security-utility
+    target_platform: evaluate-against-infisical-and-break-glass-design
+    authority: human-password-vault
+    action: KEEP-FOR-NOW
+    note: Vaultwarden and Infisical solve different problems; do not retire without a credential ownership review.
+
+  - name: portainer-production
+    status: observed
+    evidence: zentari-ops/docker-compose.internal.yml
+    current_platform: atlas
+    owner_plane: operations
+    target_platform: atlas-if-still-useful
+    authority: container-ui
+    action: KEEP-OR-RETIRE-AFTER-USAGE-REVIEW
+
+  - name: homepage-production
+    status: observed
+    evidence: zentari-ops/docker-compose.internal.yml
+    current_platform: atlas
+    owner_plane: operations
+    target_platform: atlas-or-retire
+    authority: internal-dashboard
+    action: VERIFY-USAGE
+
+  - name: watchtower-container-updater
+    status: observed
+    evidence: zentari-ops/docker-compose.internal.yml
+    current_platform: atlas
+    owner_plane: operations
+    target_platform: reconsider-for-controlled-production-upgrades
+    authority: automatic-container-updates
+    action: REVIEW
+    note: Automatic production image updates conflict with the target staging-first, pinned-version promotion model.
+
+  - name: coredns-production
+    status: observed
+    evidence: zentari-ops/docker-compose.internal.yml
+    current_platform: atlas
+    owner_plane: management-network
+    target_platform: retain-if-required-by-tailscale-routing
+    authority: internal-dns
+    action: VERIFY
 
   - name: appflowy
     status: target-evaluation
@@ -112,7 +315,6 @@ services:
     target_platform: atlas-if-required
     authority: operational-data
     action: HOLD
-    note: Deploy only when a concrete operational-data use case is not better served by CRM, AppFlowy or a custom application database.
 
   - name: supabase
     status: optional-managed
@@ -122,16 +324,17 @@ services:
     target_platform: supabase-pro-when-justified
     authority: custom-application-backend
     action: USE-PER-APP
-    note: Prefer for custom applications needing managed Postgres, Auth, RLS, Storage, Realtime or generated APIs. Do not use as a generic replacement for packaged application databases.
 
   - name: backblaze-b2
     status: observed
-    evidence: user-confirmed-offsite-backup
+    evidence: zentari-ops/docs/backup.md-and-user-confirmation
     current_platform: backblaze
     owner_plane: offsite-backup
     target_platform: backblaze
     authority: encrypted-offsite-recovery-copy
     action: KEEP
+    current_policy: 7-daily-4-weekly-3-monthly
+    integrity_check: weekly
 
   - name: proxmox-observability-vm
     status: observed
@@ -144,25 +347,6 @@ services:
       bootdisk_gb: 200
     authority: unverified
     action: INVENTORY
-    note: Do not duplicate or migrate observability until the services currently running in VM 105 are identified.
-
-  - name: grafana-prometheus-loki
-    status: target-or-existing-unverified
-    evidence: architecture-conversation-and-existing-observability-vm
-    current_platform: forge-vm105-unverified
-    owner_plane: operations
-    target_platform: watchtower-for-external-visibility-with-vault-for-local-long-retention-as-needed
-    authority: telemetry
-    action: VERIFY-BEFORE-DEPLOY
-
-  - name: uptime-kuma
-    status: target-or-existing-unverified
-    evidence: existing-zentari-context
-    current_platform: unverified
-    owner_plane: operations
-    target_platform: watchtower
-    authority: external-availability-checks
-    action: VERIFY-BEFORE-DEPLOY
 
   - name: infisical
     status: target
@@ -174,9 +358,9 @@ services:
     action: VERIFY-AND-HARDEN
 
   - name: tailscale
-    status: target-or-partial
-    evidence: architecture-conversation
-    current_platform: unverified
+    status: observed-partial
+    evidence: zentari-ops-readme-and-compose
+    current_platform: atlas-confirmed-other-hosts-unverified
     owner_plane: management-network
     target_platform: all-managed-hosts
     authority: private-management-plane
