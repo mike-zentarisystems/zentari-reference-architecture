@@ -12,19 +12,28 @@ Canonical, rebuild-oriented documentation for Zentari's internal platform and re
 
 ## Start here
 
-1. Read [ARCHITECTURE.md](ARCHITECTURE.md) for current and target states.
-2. Check [inventory/hosts.yml](inventory/hosts.yml) and [inventory/services.yml](inventory/services.yml) for what is observed, proposed, or optional.
-3. Read [DECISIONS.md](DECISIONS.md) and the ADRs before changing platform ownership.
-4. Use [ROADMAP.md](ROADMAP.md) for milestone gates.
-5. Follow the runbooks for changes, recovery, and restores.
+1. Read [CURRENT-STATE.md](CURRENT-STATE.md) for the M0 live-state baseline and unresolved inventory items.
+2. Read [ARCHITECTURE.md](ARCHITECTURE.md) for current and target architecture.
+3. Check [inventory/hosts.yml](inventory/hosts.yml) and [inventory/services.yml](inventory/services.yml) for what is observed, proposed, optional, duplicated, or pending validation.
+4. Read [DECISIONS.md](DECISIONS.md) and the ADRs before changing platform ownership.
+5. Use [ROADMAP.md](ROADMAP.md) for milestone gates.
+6. Follow the runbooks for changes, recovery, and restores.
+
+## M0 live inventory
+
+Use `scripts/collect-host-inventory.sh` on Linux hosts to collect a read-only baseline of operating system, compute, storage, network listeners, Docker workloads, systemd services, database/application processes, scheduled jobs, backup tooling and Tailscale state. The collector intentionally excludes environment variable values and secret-file contents.
+
+Track remaining M0 work in GitHub issue **#1: M0: Complete live infrastructure inventory**.
+
+Review collector output before committing it. Do not commit passwords, tokens, private keys, `.env` contents or other secrets.
 
 ## Repository contract
 
-This repository describes desired architecture and operational procedures. It does not imply that a component is deployed. Every asset uses one of these lifecycle labels:
+This repository describes desired architecture and operational procedures. It does not imply that a component is deployed. Every asset uses lifecycle labels that clearly distinguish observed state, target state, optional components and retired components. Inventory records may add more specific transitional states such as `observed-partial`, `observed-duplicates` or `target-evaluation` when that precision avoids implying deployment.
 
-| Label | Meaning |
+| Core label | Meaning |
 |---|---|
-| `observed` | Confirmed from the source conversation or current inventory evidence |
+| `observed` | Confirmed from current evidence |
 | `target` | Approved direction, not necessarily implemented |
 | `optional` | Evaluation candidate with no deployment commitment |
 | `retired` | Historical component that must not be restored as an active dependency |
@@ -33,10 +42,12 @@ Deployable automation belongs in `ansible/`, `terraform/`, `compose/`, `monitori
 
 ## Repository map
 
+- `CURRENT-STATE.md` — M0 evidence-backed current-state baseline
 - `docs/` — architecture by concern
 - `docs/adr/` — immutable decision records; supersede rather than rewrite
 - `diagrams/` — Mermaid source diagrams
 - `inventory/` — machine and service source-of-truth records
+- `scripts/` — safe collection and validation helpers
 - `runbooks/` — operator procedures
 - `infrastructure/` — environment ownership and future deployable manifests
 - `ansible/`, `terraform/`, `compose/` — future implementation surfaces
