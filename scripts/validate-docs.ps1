@@ -6,7 +6,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $errors = [System.Collections.Generic.List[string]]::new()
 
 $required = @(
-    'README.md', 'ARCHITECTURE.md', 'DECISIONS.md', 'ROADMAP.md',
+    'README.md', 'CURRENT-STATE.md', 'ARCHITECTURE.md', 'DECISIONS.md', 'ROADMAP.md',
     'CONTRIBUTING.md', 'docs/adr/README.md', 'docs/adr/template.md',
     'inventory/hosts.yml', 'inventory/services.yml', 'runbooks/README.md',
     'backups/README.md', 'LICENSE', 'SECURITY.md', '.github/workflows/validate.yml'
@@ -35,7 +35,12 @@ foreach ($file in $markdownFiles) {
     }
 }
 
-$allowedStatuses = @('observed', 'target', 'optional', 'retired')
+$allowedStatuses = @(
+    'observed', 'observed-partial', 'observed-duplicates', 'observed-unverified',
+    'observed-current-target-conversion', 'target', 'target-evaluation',
+    'target-or-partial', 'target-or-existing-unverified', 'optional',
+    'optional-evaluation', 'optional-managed', 'retired'
+)
 foreach ($inventory in @('inventory/hosts.yml', 'inventory/services.yml')) {
     $path = Join-Path $root $inventory
     if (-not (Test-Path -LiteralPath $path)) { continue }
