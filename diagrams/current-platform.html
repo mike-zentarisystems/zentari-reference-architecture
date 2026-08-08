@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zentari Current Platform Architecture</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f7f7f8; color: #111; }
+    header { padding: 24px 32px 8px; }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    p { margin: 0; color: #444; }
+    main { padding: 24px 32px 40px; }
+    .card { background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 20px; overflow-x: auto; }
+    .legend { margin-top: 16px; font-size: 14px; color: #555; }
+    code { background: #f0f0f0; padding: 2px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Zentari Current Platform Architecture</h1>
+    <p>Pressure-tested current plan. Tailscale is assumed for private management and east-west communication.</p>
+  </header>
+  <main>
+    <div class="card">
+      <pre class="mermaid">
+flowchart TB
+    USERS["Users / Customers"]
+    CF["Cloudflare\nDNS / WAF / Edge"]
+    VERCEL["Vercel\nPublic web apps / portals"]
+
+    USERS --> CF
+    CF --> VERCEL
+
+    subgraph ATLAS["ATLAS — Production VPS"]
+        CADDY["Caddy\nIngress / TLS"]
+        TWENTY["Twenty CRM"]
+        N8N["n8n\nZentari internal automation"]
+        PG[("PostgreSQL")]
+        LITELLM["LiteLLM\nProduction AI gateway"]
+        APPFLOWY["AppFlowy\nOptional company knowledge"]
+        PRODAPPS["Production app services"]
+
+        CADDY --> TWENTY
+        CADDY --> N8N
+        CADDY --> APPFLOWY
+        CADDY --> PRODAPPS
+        TWENTY --> PG
+        N8N --> PG
+        LITELLM --> PG
+    end
+
+    VERCEL --> CADDY
+
+    subgraph CITADEL["CITADEL — Zentari AI Appliance"]
+        HERMES1["Hermes Primary"]
+        OLLAMA["Ollama / llama.cpp\nRTX 3060 12 GB"]
+        QDRANT[("Qdrant\nRebuildable index")]
+        EMB["Embeddings / Reranking"]
+        AITOOLS["AI-specific tools"]
+
+        HERMES1 --> OLLAMA
+        HERMES1 --> QDRANT
+        EMB --> QDRANT
+        HERMES1 --> AITOOLS
+    end
+
+    LITELLM --> OLLAMA
+
+    subgraph FORGE["FORGE — Primary Proxmox"]
+        STAGING["Production-like Staging"]
+        COOLIFY["Coolify Control VM\nOptional convenience"]
+        OBS["Basic Observability VM"]
+        BUZZ["Buzz / AI Dev VM"]
+        LAB["Disposable Lab\nOnly when needed"]
+    end
+
+    subgraph VAULT["VAULT — R410 / Second Proxmox"]
+        PBS["Proxmox Backup Server"]
+        RESTICLOCAL["Local Backup / Restic Repository"]
+        RESTORE["Restore-Test Workspace"]
+        ARCHIVE["ISO / Templates / Bulk Archive"]
+    end
+
+    subgraph ORACLE["ORACLE OCI — External Watchtower"]
+        HERMES2["Hermes Secondary\nOptional degraded mode"]
+        KUMA["Uptime Kuma"]
+        CHECKS["External DNS / SSL / Backup Checks"]
+    end
+
+    B2["Backblaze B2\nOffsite Recovery"]
+    TS["Tailscale\nPrivate management fabric"]
+
+    ATLAS -. private management .-> TS
+    CITADEL -. private management .-> TS
+    FORGE -. private management .-> TS
+    VAULT -. private management .-> TS
+    ORACLE -. private management .-> TS
+
+    FORGE --> PBS
+    ATLAS --> RESTICLOCAL
+    CITADEL --> RESTICLOCAL
+    PBS --> B2
+    RESTICLOCAL --> B2
+
+    ORACLE -. external monitoring .-> ATLAS
+    ORACLE -. external monitoring .-> CITADEL
+    ORACLE -. external monitoring .-> FORGE
+    ORACLE -. external monitoring .-> VAULT
+
+    STAGING -. validate before production .-> ATLAS
+    COOLIFY -. deploy/manage where useful .-> ATLAS
+    COOLIFY -. deploy/manage where useful .-> STAGING
+
+    HERMES2 -. cloud fallback / degraded mode .-> LITELLM
+      </pre>
+    </div>
+    <div class="legend">
+      Current intent: <code>Atlas = production</code>, <code>Citadel = AI</code>, <code>Forge = staging/dev</code>, <code>Vault = backup/storage</code>, <code>Oracle = external watchtower</code>.
+    </div>
+  </main>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict', flowchart: { htmlLabels: true, curve: 'basis' } });
+  </script>
+</body>
+</html>
