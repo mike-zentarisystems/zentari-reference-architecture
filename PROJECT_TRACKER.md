@@ -5,11 +5,11 @@ Status values: `BACKLOG`, `READY`, `IN PROGRESS`, `BLOCKED`, `DONE`.
 | ID | Priority | Work item | Status | Milestone | Validation |
 |---|---|---|---|---|---|
 | ZP-001 | P0 | Complete live host inventory | IN PROGRESS | M0 | Inventory reviewed and repo updated |
-| ZP-002 | P0 | Escrow recovery secrets | READY | M0 | Recovery material accessible without any single host |
-| ZP-003 | P0 | Verify Restic/Backblaze repository | READY | M0 | `restic check` succeeds |
-| ZP-004 | P0 | Restore sample files | READY | M0 | Restored files match source/checksum |
-| ZP-005 | P0 | Restore PostgreSQL in isolation | READY | M0 | DB starts and expected tables/data exist |
-| ZP-006 | P0 | Audit R410 RAID/disks | READY | M0 | Controller, RAID level and disk health recorded |
+| ZP-002 | P0 | Escrow recovery secrets | IN PROGRESS | M0 | Recovery material accessible without any single host |
+| ZP-003 | P0 | Verify Restic/Backblaze repository | IN PROGRESS | M0 | `scripts/validate-restic-b2.sh` succeeds and evidence reviewed |
+| ZP-004 | P0 | Restore sample files | IN PROGRESS | M0 | Isolated restore succeeds and representative checksums/content verified |
+| ZP-005 | P0 | Restore PostgreSQL in isolation | IN PROGRESS | M0 | Temporary DB starts and expected tables/data exist |
+| ZP-006 | P0 | Audit R410 RAID/disks | IN PROGRESS | M0 | Controller, RAID level, disk health and current VM/datastore state recorded |
 | ZP-010 | P1 | Convert R410 to Proxmox | BLOCKED | M1 | Blocked by ZP-006 and preservation review |
 | ZP-011 | P1 | Configure Vault backup storage/PBS | BACKLOG | M1 | Forge VM backup and restore succeed |
 | ZP-020 | P1 | Create Forge staging VM | BACKLOG | M2 | Production-like Compose deployment succeeds |
@@ -25,6 +25,17 @@ Status values: `BACKLOG`, `READY`, `IN PROGRESS`, `BLOCKED`, `DONE`.
 | ZP-061 | P1 | Configure Zentari CRM model | BACKLOG | M6 | Lead/company/opportunity workflow works |
 | ZP-070 | P1 | Build lead-to-customer workflow | BACKLOG | M7 | End-to-end acceptance test passes |
 | ZP-080 | P2 | Document customer n8n Cloud delivery pattern | BACKLOG | M8 | Sample customer handoff/offboarding succeeds |
+
+## Current execution pack
+
+Use `runbooks/p0-execution.md` with:
+
+- `scripts/collect-host-inventory.sh`
+- `scripts/validate-restic-b2.sh`
+- `scripts/test-restic-file-restore.sh`
+- `scripts/test-postgres-restore.sh`
+- `scripts/audit-r410-esxi.sh`
+- `evidence/README.md`
 
 ## Working rule
 
