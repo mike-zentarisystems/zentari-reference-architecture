@@ -1,0 +1,114 @@
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - edge
+      - app
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_SUPERUSER}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPERUSER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:${N8N_VERSION}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${N8N_DB}
+      DB_POSTGRESDB_USER: ${N8N_DB_USER}
+      DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_HOST: ${N8N_HOST}
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://${N8N_HOST}/
+      GENERIC_TIMEZONE: America/New_York
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - app
+      - data
+
+  litellm:
+    image: ghcr.io/berriai/litellm:${LITELLM_VERSION}
+    restart: unless-stopped
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    volumes:
+      - ./litellm/config.yaml:/app/config.yaml:ro
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+      DATABASE_URL: ${LITELLM_DATABASE_URL}
+    networks:
+      - app
+      - data
+
+  # Twenty is intentionally isolated behind a profile until staging validation is complete.
+  twenty-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    profiles: ["twenty"]
+    volumes:
+      - twenty_redis_data:/data
+    networks:
+      - data
+
+  twenty:
+    image: twentycrm/twenty:${TWENTY_VERSION}
+    restart: unless-stopped
+    profiles: ["twenty"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      twenty-redis:
+        condition: service_started
+    environment:
+      PG_DATABASE_URL: ${TWENTY_DATABASE_URL}
+      REDIS_URL: redis://twenty-redis:6379
+      SERVER_URL: https://${TWENTY_HOST}
+      APP_SECRET: ${TWENTY_APP_SECRET}
+    volumes:
+      - twenty_data:/app/packages/twenty-server/.local-storage
+    networks:
+      - app
+      - data
+
+networks:
+  edge:
+  app:
+    internal: true
+  data:
+    internal: true
+
+volumes:
+  caddy_data:
+  caddy_config:
+  postgres_data:
+  n8n_data:
+  twenty_data:
+  twenty_redis_data:
