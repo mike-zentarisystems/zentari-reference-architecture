@@ -1,0 +1,15 @@
+{
+    email {$ACME_EMAIL}
+}
+
+{$N8N_HOST} {
+    reverse_proxy n8n:5678
+}
+
+{$LITELLM_HOST} {
+    reverse_proxy litellm:4000
+}
+
+{$TWENTY_HOST} {
+    reverse_proxy twenty:3000
+}
